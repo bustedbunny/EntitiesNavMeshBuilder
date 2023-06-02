@@ -1,0 +1,16 @@
+﻿{
+  "name": "com.bustedbunny.entitiesnavmeshbuilder",
+  "version": "0.5.0",
+  "displayName": "Entities NavMesh Builder",
+  "description": "This package provides a runtime navmesh building, which dynamically rebuilds if there are changes.",
+  "unity": "2022.2",
+  "unityRelease": "21f1",
+  "dependencies": {
+    "com.unity.entities": "1.0.8",
+    "com.unity.ai.navigation": "1.1.3"
+  },
+  "author": {
+    "name": "bustedbunny",
+    "email": "bustedbunny@bk.ru"
+  }
+}
