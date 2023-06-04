@@ -2,7 +2,6 @@
 using EntitiesNavMeshBuilder.Systems;
 using Unity.Entities;
 using Unity.Transforms;
-using UnityEngine;
 using UnityEngine.AI;
 
 namespace TerrainBaking
@@ -16,7 +15,7 @@ namespace TerrainBaking
         public void OnCreate(ref SystemState state)
         {
             _toAddQuery = SystemAPI.QueryBuilder()
-                .WithAll<NavMeshPart, TerrainMesh>().WithNone<NavMeshSourceData>().Build();
+                .WithAll<NavMeshPart, NavMeshTerrainData>().WithNone<NavMeshSourceData>().Build();
         }
 
         public void OnUpdate(ref SystemState state)
@@ -27,9 +26,9 @@ namespace TerrainBaking
             }
 
             foreach (var (idRef, terrain, link, lt, ltwRef) in SystemAPI
-                         .Query<RefRW<NavMeshSourceData>, TerrainMesh, CompanionLink, LocalTransform,
+                         .Query<RefRW<NavMeshSourceData>, NavMeshTerrainData, CompanionLink, LocalTransform,
                              RefRW<LocalToWorld>>()
-                         .WithChangeFilter<TerrainMesh>())
+                         .WithChangeFilter<NavMeshTerrainData>())
             {
                 var terrainData = terrain.data;
                 var terrainId = terrainData.GetInstanceID();

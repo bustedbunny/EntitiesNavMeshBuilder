@@ -72,7 +72,7 @@ namespace TerrainBaking.Authoring
             AddComponentObject(entity, terrain);
             AddComponentObject(entity, GetComponent<UnityEngine.TerrainCollider>());
             // GenerateMesh(colliderHeights, size, scale, out var mesh);
-            AddComponentObject(entity, new EntityTerrainData { data = data });
+            AddComponentObject(entity, new NavMeshTerrainData { data = data });
 
             colliderHeights.Dispose();
         }
