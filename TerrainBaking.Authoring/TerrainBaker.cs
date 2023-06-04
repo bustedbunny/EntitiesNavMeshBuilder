@@ -4,16 +4,19 @@ using Unity.Mathematics;
 using Unity.Physics;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Material = Unity.Physics.Material;
 using TerrainCollider = Unity.Physics.TerrainCollider;
 
 namespace TerrainBaking.Authoring
 {
-    public class TerrainBaker : Baker<Terrain>
+    public class TerrainBaker : Baker<TerrainAuthoring>
     {
-        public override void Bake(Terrain authoring)
+        public override void Bake(TerrainAuthoring authoring)
         {
-            DependsOn(authoring.terrainData);
-            var data = authoring.terrainData;
+            var terrain = GetComponent<Terrain>();
+
+            DependsOn(terrain.terrainData);
+            var data = terrain.terrainData;
 
             var resolution = data.heightmapResolution;
             var size = new int2(resolution, resolution);
@@ -31,21 +34,32 @@ namespace TerrainBaking.Authoring
                 }
             }
 
-            BakingUtility.AdditionalCompanionComponentTypes.Add(typeof(Terrain));
-            BakingUtility.AdditionalCompanionComponentTypes.Add(typeof(UnityEngine.TerrainCollider));
 
+            var template = authoring.physicsTemplate;
 
+            var filter = new CollisionFilter
+            {
+                BelongsTo = template.BelongsTo.Value,
+                CollidesWith = template.CollidesWith.Value,
+            };
+            var material = new Material
+            {
+                FrictionCombinePolicy = template.Friction.CombineMode,
+                RestitutionCombinePolicy = template.Restitution.CombineMode,
+                CustomTags = template.CustomTags.Value,
+                Friction = template.Friction.Value,
+                Restitution = template.Restitution.Value,
+                CollisionResponse = template.CollisionResponse,
+                EnableMassFactors = false,
+                EnableSurfaceVelocity = false
+            };
+            const TerrainCollider.CollisionMethod collisionMethod = TerrainCollider.CollisionMethod.Triangles;
             var collider = new PhysicsCollider
             {
-                Value = TerrainCollider.Create(colliderHeights, size, scale, TerrainCollider.CollisionMethod.Triangles)
+                Value = TerrainCollider.Create(colliderHeights, size, scale, collisionMethod, filter, material)
             };
-            // collider.ColliderPtr->SetCollisionFilter(new CollisionFilter
-            // {
-            //     BelongsTo = 0,
-            //     CollidesWith = 0,
-            //     GroupIndex = 0
-            // });
-            AddBlobAsset(ref collider.Value, out var hash);
+
+            AddBlobAsset(ref collider.Value, out _);
 
             var entity = GetEntity(TransformUsageFlags.Dynamic);
             AddComponent(entity, collider);
@@ -53,10 +67,12 @@ namespace TerrainBaking.Authoring
             AddBuffer<PhysicsColliderKeyEntityPair>(entity);
 
 
-            AddComponentObject(entity, authoring);
+            BakingUtility.AdditionalCompanionComponentTypes.Add(typeof(Terrain));
+            BakingUtility.AdditionalCompanionComponentTypes.Add(typeof(UnityEngine.TerrainCollider));
+            AddComponentObject(entity, terrain);
             AddComponentObject(entity, GetComponent<UnityEngine.TerrainCollider>());
             // GenerateMesh(colliderHeights, size, scale, out var mesh);
-            AddComponentObject(entity, new TerrainMesh { data = data });
+            AddComponentObject(entity, new EntityTerrainData { data = data });
 
             colliderHeights.Dispose();
         }
