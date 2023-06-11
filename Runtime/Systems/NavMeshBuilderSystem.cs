@@ -73,17 +73,20 @@ namespace EntitiesNavMeshBuilder.Systems
         protected override void OnUpdate()
         {
             var collection = SystemAPI.GetSingleton<NavMeshCollection>();
-            if (collection.version > _globalVersion)
+            EntityManager.CompleteDependencyBeforeRO<NavMeshCollection>();
+
+            var collectionData = collection.data.Value;
+            if (collectionData.version > _globalVersion)
             {
-                _globalVersion = collection.version;
+                _globalVersion = collectionData.version;
                 _sourceList.Clear();
-                _sourceList.AddRangeNative(collection.list.GetUnsafeReadOnlyPtr(), collection.list.Length);
+                _sourceList.AddRangeNative(collection.sources.GetUnsafeReadOnlyPtr(), collection.sources.Length);
             }
 
             for (var i = 0; i < _settingsArray.Length; i++)
             {
                 var version = _versions[i];
-                if (collection.version <= version)
+                if (collectionData.version <= version)
                 {
                     continue;
                 }
@@ -94,12 +97,12 @@ namespace EntitiesNavMeshBuilder.Systems
                     continue;
                 }
 
-                _versions[i] = collection.version;
+                _versions[i] = collectionData.version;
 
                 var settings = _settingsArray[i];
                 var data = _dataArray[i];
                 _operations[i] =
-                    NavMeshBuilder.UpdateNavMeshDataAsync(data, settings, _sourceList, collection.worldBounds);
+                    NavMeshBuilder.UpdateNavMeshDataAsync(data, settings, _sourceList, collectionData.worldBounds);
             }
         }
     }

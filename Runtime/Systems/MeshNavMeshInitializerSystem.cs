@@ -1,5 +1,6 @@
 ﻿using EntitiesNavMeshBuilder.Data;
 using Unity.Entities;
+using Unity.Physics;
 using Unity.Rendering;
 using UnityEngine.AI;
 
@@ -7,14 +8,15 @@ namespace EntitiesNavMeshBuilder.Systems
 {
     [UpdateInGroup(typeof(NavMeshSystemGroup))]
     [UpdateBefore(typeof(NavMeshCollectorSystem))]
-    public partial struct NavMeshInstanceIDInitializerSystem : ISystem
+    public partial struct MeshNavMeshInitializerSystem : ISystem
     {
         private EntityQuery _toAddQuery;
 
         public void OnCreate(ref SystemState state)
         {
             _toAddQuery = SystemAPI.QueryBuilder()
-                .WithAll<MaterialMeshInfo, RenderMeshArray, NavMeshPart>().WithNone<NavMeshSourceData>().Build();
+                .WithAll<MaterialMeshInfo, RenderMeshArray, NavMeshPart, MeshNavMeshPart>()
+                .WithNone<NavMeshSourceData>().Build();
         }
 
         public void OnUpdate(ref SystemState state)
@@ -26,13 +28,18 @@ namespace EntitiesNavMeshBuilder.Systems
 
             foreach (var (mmi, idRef, rma) in SystemAPI
                          .Query<MaterialMeshInfo, RefRW<NavMeshSourceData>, RenderMeshArray>()
-                         .WithChangeFilter<MaterialMeshInfo>().WithChangeFilter<RenderMeshArray>())
+                         .WithAll<MeshNavMeshPart>()
+                         .WithChangeFilter<MaterialMeshInfo, RenderMeshArray>())
             {
                 var mesh = rma.GetMesh(mmi);
-                var meshId = mesh.GetInstanceID();
                 ref var id = ref idRef.ValueRW;
-                id.instanceId = meshId;
-                id.meshBounds = mesh.bounds;
+                id.InstanceId = mesh.GetInstanceID();
+                var meshBounds = mesh.bounds;
+                id.aabb = new()
+                {
+                    Min = meshBounds.min,
+                    Max = meshBounds.max
+                };
                 id.shape = NavMeshBuildSourceShape.Mesh;
             }
         }

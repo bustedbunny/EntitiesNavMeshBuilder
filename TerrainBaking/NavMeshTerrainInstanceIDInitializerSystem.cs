@@ -1,5 +1,6 @@
 ﻿using EntitiesNavMeshBuilder.Data;
 using EntitiesNavMeshBuilder.Systems;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Transforms;
 using UnityEngine.AI;
@@ -33,8 +34,14 @@ namespace TerrainBaking
                 var terrainData = terrain.data;
                 var terrainId = terrainData.GetInstanceID();
                 ref var id = ref idRef.ValueRW;
-                id.instanceId = terrainId;
-                id.meshBounds = terrainData.bounds;
+                id.InstanceId = terrainId;
+
+                var terrainBounds = terrainData.bounds;
+                id.aabb = new()
+                {
+                    Min = terrainBounds.min,
+                    Max = terrainBounds.max
+                };
                 id.shape = NavMeshBuildSourceShape.Terrain;
 
                 link.Companion.transform.SetLocalPositionAndRotation(lt.Position, lt.Rotation);

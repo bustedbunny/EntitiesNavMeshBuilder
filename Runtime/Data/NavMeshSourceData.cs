@@ -1,14 +1,27 @@
-﻿using Unity.Entities;
-using UnityEngine;
+﻿using Unity.Collections.LowLevel.Unsafe;
+using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Physics;
 using UnityEngine.AI;
-using UnityEngine.Serialization;
 
 namespace EntitiesNavMeshBuilder.Data
 {
     public struct NavMeshSourceData : IComponentData
     {
-        public int instanceId;
-        public Bounds meshBounds;
         public NavMeshBuildSourceShape shape;
+        public Aabb aabb;
+
+        // InstanceId / size
+        public float3 data;
+
+        public int InstanceId
+        {
+            get => UnsafeUtility.As<float, int>(ref data.x);
+            set
+            {
+                ref var instanceId = ref UnsafeUtility.As<float, int>(ref data.x);
+                instanceId = value;
+            }
+        }
     }
 }
