@@ -11,7 +11,6 @@ using UnityEngine.AI;
 namespace EntitiesNavMeshBuilder.Systems
 {
     [UpdateInGroup(typeof(NavMeshSystemGroup))]
-    [UpdateAfter(typeof(NavMeshCollectorSystem))]
     public unsafe partial class NavMeshBuilderSystem : SystemBase
     {
         private readonly List<NavMeshBuildSource> _sourceList = new(1000);
@@ -70,23 +69,34 @@ namespace EntitiesNavMeshBuilder.Systems
         }
 
 
+        private Bounds _worldBounds;
+
         protected override void OnUpdate()
         {
-            var collection = SystemAPI.GetSingleton<NavMeshCollection>();
             EntityManager.CompleteDependencyBeforeRO<NavMeshCollection>();
+            EntityManager.CompleteDependencyBeforeRO<CompoundNavMeshCollection>();
+            var collection = SystemAPI.GetSingleton<NavMeshCollection>();
+            var compoundCollection = SystemAPI.GetSingleton<CompoundNavMeshCollection>();
 
-            var collectionData = collection.data.Value;
-            if (collectionData.version > _globalVersion)
+            var metadata = collection.metadata.Value;
+            var compoundMetadata = compoundCollection.metadata.Value;
+            if (metadata.version > _globalVersion || compoundMetadata.version > _globalVersion)
             {
-                _globalVersion = collectionData.version;
+                _globalVersion = math.max(metadata.version, compoundMetadata.version);
                 _sourceList.Clear();
-                _sourceList.AddRangeNative(collection.sources.GetUnsafeReadOnlyPtr(), collection.sources.Length);
+                var sources = collection.sources;
+                var compounds = compoundCollection.sources;
+                _sourceList.AddRangeNative(sources.GetUnsafeReadOnlyPtr(), sources.Length);
+                _sourceList.AddRangeNative(compounds.GetUnsafeReadOnlyPtr(), compounds.Length);
+
+                _worldBounds = metadata.worldBounds;
+                _worldBounds.Encapsulate(compoundMetadata.worldBounds);
             }
 
             for (var i = 0; i < _settingsArray.Length; i++)
             {
                 var version = _versions[i];
-                if (collectionData.version <= version)
+                if (_globalVersion <= version)
                 {
                     continue;
                 }
@@ -97,12 +107,12 @@ namespace EntitiesNavMeshBuilder.Systems
                     continue;
                 }
 
-                _versions[i] = collectionData.version;
+                _versions[i] = metadata.version;
 
                 var settings = _settingsArray[i];
                 var data = _dataArray[i];
                 _operations[i] =
-                    NavMeshBuilder.UpdateNavMeshDataAsync(data, settings, _sourceList, collectionData.worldBounds);
+                    NavMeshBuilder.UpdateNavMeshDataAsync(data, settings, _sourceList, _worldBounds);
             }
         }
     }

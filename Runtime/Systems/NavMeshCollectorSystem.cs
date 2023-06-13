@@ -9,41 +9,42 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
-using UnityEngine;
 using UnityEngine.AI;
 
 namespace EntitiesNavMeshBuilder.Systems
 {
     [UpdateInGroup(typeof(NavMeshSystemGroup))]
-    [UpdateAfter(typeof(MeshNavMeshInitializerSystem))]
+    [UpdateBefore(typeof(NavMeshBuilderSystem))]
     public partial struct NavMeshCollectorSystem : ISystem
     {
-        private NativeList<NavMeshBuildSource> _list;
-        private NativeList<Aabb> _boundsList;
-        private int _offset;
-        private EntityQuery _query;
-        private NativeReference<NavMeshCollectionData> _collectionData;
+        private NativeList<NavMeshBuildSource> _sources;
+        private NativeList<Aabb> _aabbs;
+        private NativeReference<NavMeshCollectionMetadata> _meta;
         private NativeReference<bool> _changeTracker;
+
+        private int _instanceIdOffset;
+
+        private EntityQuery _query;
 
 
         public void OnCreate(ref SystemState state)
         {
-            _list = new(1000, Allocator.Persistent);
-            _collectionData = new(Allocator.Persistent);
-            _boundsList = new(1000, Allocator.Persistent);
+            _sources = new(1000, Allocator.Persistent);
+            _meta = new(Allocator.Persistent);
+            _aabbs = new(1000, Allocator.Persistent);
             _changeTracker = new(Allocator.Persistent);
 
             state.EntityManager.CreateSingleton<NavMeshCollection>();
             SystemAPI.SetSingleton(new NavMeshCollection
             {
-                sources = _list,
-                data = _collectionData
+                sources = _sources,
+                metadata = _meta
             });
 
             // need to obtain offset to have burst compatible way to inject instance id
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
             var fieldInfo = typeof(NavMeshBuildSource).GetField("m_InstanceID", flags);
-            _offset = UnsafeUtility.GetFieldOffset(fieldInfo);
+            _instanceIdOffset = UnsafeUtility.GetFieldOffset(fieldInfo);
 
             _query = SystemAPI.QueryBuilder().WithAll<NavMeshSourceData, LocalToWorld>().Build();
             _query.AddChangedVersionFilter(typeof(NavMeshSourceData));
@@ -53,9 +54,9 @@ namespace EntitiesNavMeshBuilder.Systems
 
         public void OnDestroy(ref SystemState state)
         {
-            _list.Dispose();
-            _collectionData.Dispose();
-            _boundsList.Dispose();
+            _sources.Dispose();
+            _meta.Dispose();
+            _aabbs.Dispose();
             _changeTracker.Dispose();
         }
 
@@ -69,8 +70,8 @@ namespace EntitiesNavMeshBuilder.Systems
 
             state.Dependency = new ResizeJob
             {
-                list1 = _list,
-                list2 = _boundsList,
+                list1 = _sources,
+                list2 = _aabbs,
                 count = count,
                 changeTracker = _changeTracker
             }.Schedule(state.Dependency);
@@ -83,17 +84,17 @@ namespace EntitiesNavMeshBuilder.Systems
                 dataTh = SystemAPI.GetComponentTypeHandle<NavMeshSourceData>(true),
                 ltwTh = SystemAPI.GetComponentTypeHandle<LocalToWorld>(true),
                 firstIndices = firstEntityIndices,
-                sources = _list,
-                aabbs = _boundsList,
-                idOffset = _offset,
+                sources = _sources,
+                aabbs = _aabbs,
+                idOffset = _instanceIdOffset,
                 changeTracker = _changeTracker
             }.ScheduleParallel(_query, dep);
 
             state.Dependency = new CalculateWorldBoundsJob
             {
-                collectionData = _collectionData,
-                sources = _list,
-                aabbs = _boundsList,
+                metadata = _meta,
+                sources = _sources,
+                aabbs = _aabbs,
                 systemVersion = state.GlobalSystemVersion,
                 changeTracker = _changeTracker
             }.Schedule(state.Dependency);
@@ -125,68 +126,6 @@ namespace EntitiesNavMeshBuilder.Systems
 
                 list1.ResizeUninitialized(count);
                 list2.ResizeUninitialized(count);
-            }
-        }
-
-        [BurstCompile]
-        private struct CalculateWorldBoundsJob : IJob
-        {
-            public NativeReference<NavMeshCollectionData> collectionData;
-            [ReadOnly] public NativeList<NavMeshBuildSource> sources;
-            [ReadOnly] public NativeList<Aabb> aabbs;
-            public uint systemVersion;
-            [ReadOnly] public NativeReference<bool> changeTracker;
-
-            public void Execute()
-            {
-                if (!changeTracker.Value)
-                {
-                    return;
-                }
-
-                collectionData.Value = new()
-                {
-                    version = systemVersion,
-                    worldBounds = CalculateWorldBounds()
-                };
-            }
-
-            private Bounds CalculateWorldBounds()
-            {
-                var result = GetWorldBounds(sources[0].transform, aabbs[0]);
-
-                for (var i = 1; i < sources.Length; i++)
-                {
-                    result.Include(GetWorldBounds(sources[i].transform, aabbs[i]));
-                }
-
-                // Inflate the bounds a bit to avoid clipping co-planar sources
-                result.Expand(0.1f);
-
-                var bounds = default(Bounds);
-                bounds.SetMinMax(result.Min, result.Max);
-                return bounds;
-            }
-
-            private static Aabb GetWorldBounds(float4x4 mat, Aabb bounds)
-            {
-                ref var ltw = ref UnsafeUtility.As<float4x4, LocalToWorld>(ref mat);
-                var rot = ltw.Rotation;
-
-                var halfExtentsInA = bounds.Extents * 0.5f;
-
-                var x = math.rotate(rot, new(halfExtentsInA.x, 0, 0));
-                var y = math.rotate(rot, new(0, halfExtentsInA.y, 0));
-                var z = math.rotate(rot, new(0, 0, halfExtentsInA.z));
-
-                var halfExtentsInB = math.abs(x) + math.abs(y) + math.abs(z);
-                var centerInB = math.transform(mat, bounds.Center);
-
-                return new()
-                {
-                    Min = centerInB - halfExtentsInB,
-                    Max = centerInB + halfExtentsInB
-                };
             }
         }
 

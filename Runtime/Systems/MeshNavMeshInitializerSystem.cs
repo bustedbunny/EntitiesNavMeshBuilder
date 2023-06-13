@@ -6,8 +6,8 @@ using UnityEngine.AI;
 
 namespace EntitiesNavMeshBuilder.Systems
 {
-    [UpdateInGroup(typeof(NavMeshSystemGroup))]
-    [UpdateBefore(typeof(NavMeshCollectorSystem))]
+    [UpdateInGroup(typeof(InitializationSystemGroup))]
+    // [UpdateBefore(typeof(NavMeshCollectorSystem))]
     public partial struct MeshNavMeshInitializerSystem : ISystem
     {
         private EntityQuery _toAddQuery;

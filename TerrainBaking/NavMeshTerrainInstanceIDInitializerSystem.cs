@@ -7,8 +7,7 @@ using UnityEngine.AI;
 
 namespace TerrainBaking
 {
-    [UpdateInGroup(typeof(NavMeshSystemGroup))]
-    [UpdateBefore(typeof(NavMeshCollectorSystem))]
+    [UpdateInGroup(typeof(InitializationSystemGroup))]
     public partial struct NavMeshTerrainInstanceIDInitializerSystem : ISystem
     {
         private EntityQuery _toAddQuery;

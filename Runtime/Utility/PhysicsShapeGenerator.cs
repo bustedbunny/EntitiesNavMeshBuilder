@@ -33,13 +33,8 @@ namespace EntitiesNavMeshBuilder.Utility
                     return Sphere((SphereCollider*)collider, out bounds, out transform);
                 case ColliderType.Capsule:
                     return Capsule((CapsuleCollider*)collider, out bounds, out transform);
-                // case ColliderType.Convex:
-                //     break;
-                // case ColliderType.Compound:
-                //     break;
-
                 default:
-                    throw new InvalidOperationException($"{collider->Type} is not supported by NavMesh builder.");
+                    throw new InvalidOperationException($"{collider->Type} is not supported.");
             }
         }
 

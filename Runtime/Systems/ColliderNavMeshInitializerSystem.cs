@@ -4,13 +4,12 @@ using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
-using UnityEngine;
 using Collider = Unity.Physics.Collider;
 
 namespace EntitiesNavMeshBuilder.Systems
 {
     [UpdateInGroup(typeof(InitializationSystemGroup))]
-    // [UpdateBefore(typeof(NavMeshCollectorSystem))]
+    // [UpdateBefore(typeof(NavMeshCompoundCollectorSystem))]
     public partial struct ColliderNavMeshInitializerSystem : ISystem
     {
         private EntityQuery _toAddQuery;
@@ -19,7 +18,7 @@ namespace EntitiesNavMeshBuilder.Systems
         {
             _toAddQuery = SystemAPI.QueryBuilder()
                 .WithAll<PhysicsCollider, NavMeshPart, ColliderNavMeshPart>()
-                .WithNone<NavMeshSourceData>().Build();
+                .WithNone<NavMeshSourceData, CompoundNavMeshData>().Build();
             state.RequireForUpdate(_toAddQuery);
         }
 
@@ -41,30 +40,20 @@ namespace EntitiesNavMeshBuilder.Systems
                     {
                         state.EntityManager.RemoveComponent<NavMeshSourceData>(e);
 
-                        Debug.LogWarning($"Compound collider is not supported at this moment.");
+                        var compound = (CompoundCollider*)collider.ColliderPtr;
+                        var compoundBuffer = state.EntityManager.AddBuffer<CompoundNavMeshData>(e);
 
-                        // var compound = (CompoundCollider*)collider.ColliderPtr;
-                        // var compoundBuffer = state.EntityManager.AddBuffer<CompoundNavMeshData>(e);
-                        //
-                        // for (var i = 0; i < compound->Children.Length; i++)
-                        // {
-                        //     ref var childAccessor = ref compound->Children[i];
-                        //     var childData = GetData(childAccessor.Collider, out var posRot);
-                        //
-                        //     if (math.all(posRot.pos == float3.zero) && posRot.rot.Equals(quaternion.identity))
-                        //     {
-                        //         data = childData;
-                        //     }
-                        //     else
-                        //     {
-                        //         compoundBuffer.Add(new()
-                        //         {
-                        //             value = childData,
-                        //             pos = posRot.pos,
-                        //             rot = posRot.rot
-                        //         });
-                        //     }
-                        // }
+                        for (var i = 0; i < compound->Children.Length; i++)
+                        {
+                            ref var childAccessor = ref compound->Children[i];
+                            var childData = GetData(childAccessor.Collider, out var posRot);
+                            compoundBuffer.Add(new()
+                            {
+                                value = childData,
+                                pos = posRot.pos,
+                                rot = posRot.rot
+                            });
+                        }
                     }
                     else
                     {
