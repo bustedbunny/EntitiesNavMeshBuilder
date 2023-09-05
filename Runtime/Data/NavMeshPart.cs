@@ -6,5 +6,7 @@ namespace EntitiesNavMeshBuilder.Data
 
     public struct MeshNavMeshPart : IComponentData { }
 
+    public struct TerrainNavMeshPart : IComponentData { }
+
     public struct ColliderNavMeshPart : IComponentData { }
 }

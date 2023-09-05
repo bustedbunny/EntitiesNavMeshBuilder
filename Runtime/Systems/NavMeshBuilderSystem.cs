@@ -14,7 +14,6 @@ namespace EntitiesNavMeshBuilder.Systems
     public unsafe partial class NavMeshBuilderSystem : SystemBase
     {
         private readonly List<NavMeshBuildSource> _sourceList = new(1000);
-        private NavMeshData _navMeshData;
         private NavMeshDataInstance _instance;
 
         // optimizations

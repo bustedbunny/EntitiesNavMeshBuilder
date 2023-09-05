@@ -22,6 +22,10 @@ namespace EntitiesNavMeshBuilder.Authoring
                 {
                     AddComponent(entity, new ColliderNavMeshPart());
                 }
+                else if (authoring.type is NavMeshSourceType.Terrain)
+                {
+                    AddComponent(entity, new TerrainNavMeshPart());
+                }
             }
         }
 
@@ -29,7 +33,8 @@ namespace EntitiesNavMeshBuilder.Authoring
         {
             None = 0,
             Mesh = 100,
-            Collider = 200
+            Collider = 200,
+            Terrain = 300
         }
     }
 }
