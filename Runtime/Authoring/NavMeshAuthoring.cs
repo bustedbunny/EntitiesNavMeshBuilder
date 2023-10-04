@@ -7,13 +7,17 @@ namespace EntitiesNavMeshBuilder.Authoring
     public class NavMeshAuthoring : MonoBehaviour
     {
         public NavMeshSourceType type;
+        public int area;
 
         public class NavMeshBaker : Baker<NavMeshAuthoring>
         {
             public override void Bake(NavMeshAuthoring authoring)
             {
                 var entity = GetEntity(TransformUsageFlags.Dynamic);
-                AddComponent(entity, new NavMeshPart());
+                AddComponent(entity, new NavMeshPart
+                {
+                    area = authoring.area
+                });
                 if (authoring.type is NavMeshSourceType.Mesh)
                 {
                     AddComponent(entity, new MeshNavMeshPart());

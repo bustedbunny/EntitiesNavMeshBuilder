@@ -14,6 +14,8 @@ namespace EntitiesNavMeshBuilder.Data
         // InstanceId / size
         public float3 data;
 
+        public int area;
+
         public int InstanceId
         {
             get => UnsafeUtility.As<float, int>(ref data.x);

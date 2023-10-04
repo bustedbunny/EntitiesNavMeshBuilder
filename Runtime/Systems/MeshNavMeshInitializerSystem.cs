@@ -26,8 +26,8 @@ namespace EntitiesNavMeshBuilder.Systems
                 state.EntityManager.AddComponent<NavMeshSourceData>(_toAddQuery);
             }
 
-            foreach (var (mmi, idRef, rma) in SystemAPI
-                         .Query<MaterialMeshInfo, RefRW<NavMeshSourceData>, RenderMeshArray>()
+            foreach (var (mmi, idRef, rma, part) in SystemAPI
+                         .Query<MaterialMeshInfo, RefRW<NavMeshSourceData>, RenderMeshArray, NavMeshPart>()
                          .WithAll<MeshNavMeshPart>()
                          .WithChangeFilter<MaterialMeshInfo, RenderMeshArray>())
             {
@@ -40,6 +40,7 @@ namespace EntitiesNavMeshBuilder.Systems
                     Min = meshBounds.min,
                     Max = meshBounds.max
                 };
+                id.area = part.area;
                 id.shape = NavMeshBuildSourceShape.Mesh;
             }
         }

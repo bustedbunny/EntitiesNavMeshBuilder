@@ -27,12 +27,12 @@ namespace EntitiesNavMeshBuilder.Systems
                 state.EntityManager.AddComponent<NavMeshSourceData>(_toAddQuery);
             }
 
-            foreach (var (terr, idRef) in SystemAPI
-                         .Query<NavMeshTerrainData, RefRW<NavMeshSourceData>>()
+            foreach (var (terrain, idRef, part) in SystemAPI
+                         .Query<NavMeshTerrainData, RefRW<NavMeshSourceData>, NavMeshPart>()
                          .WithAll<TerrainNavMeshPart>()
                          .WithChangeFilter<NavMeshTerrainData>())
             {
-                var mesh = terr.data;
+                var mesh = terrain.data;
                 ref var id = ref idRef.ValueRW;
                 id.InstanceId = mesh.GetInstanceID();
                 var meshBounds = mesh.bounds;
@@ -41,6 +41,7 @@ namespace EntitiesNavMeshBuilder.Systems
                     Min = meshBounds.min,
                     Max = meshBounds.max
                 };
+                id.area = part.area;
                 id.shape = NavMeshBuildSourceShape.Terrain;
             }
         }

@@ -174,6 +174,7 @@ namespace EntitiesNavMeshBuilder.Systems
                         transform = math.mul(unscaledLtw, compoundTf),
                         size = compound.value.data,
                         shape = compound.value.shape,
+                        area = compound.value.area,
                     };
                     aabbsTmp[i] = compound.value.aabb;
                 }
