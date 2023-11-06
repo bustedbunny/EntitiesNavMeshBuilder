@@ -2,6 +2,7 @@
 using EntitiesNavMeshBuilder.Utility;
 using Unity.Burst;
 using Unity.Entities;
+using Unity.Entities.UniversalDelegates;
 using Unity.Mathematics;
 using Unity.Physics;
 using Collider = Unity.Physics.Collider;
@@ -46,7 +47,7 @@ namespace EntitiesNavMeshBuilder.Systems
                         for (var i = 0; i < compound->Children.Length; i++)
                         {
                             ref var childAccessor = ref compound->Children[i];
-                            var childData = GetData(childAccessor.Collider, out var posRot);
+                            var childData = GetData(childAccessor.Collider, in data, out var posRot);
                             compoundBuffer.Add(new()
                             {
                                 value = childData,
@@ -57,19 +58,20 @@ namespace EntitiesNavMeshBuilder.Systems
                     }
                     else
                     {
-                        data = GetData(collider.ColliderPtr, out _);
+                        data = GetData(collider.ColliderPtr, in data, out _);
                     }
                 }
             }
         }
 
-        private static unsafe NavMeshSourceData GetData(Collider* ptr, out PhysicsShapeGenerator.PosRot posRot)
+        private static unsafe NavMeshSourceData GetData(Collider* ptr, in NavMeshSourceData data, out PhysicsShapeGenerator.PosRot posRot)
         {
-            var data = new NavMeshSourceData();
-            var shapeData = PhysicsShapeGenerator.GenerateShapeData(ptr, out data.aabb, out posRot);
-            data.shape = shapeData.shape;
-            data.data = shapeData.size;
-            return data;
+            var newData = new NavMeshSourceData();
+            var shapeData = PhysicsShapeGenerator.GenerateShapeData(ptr, out newData.aabb, out posRot);
+            newData.shape = shapeData.shape;
+            newData.data = shapeData.size;
+            newData.area = data.area;
+            return newData;
         }
     }
 }

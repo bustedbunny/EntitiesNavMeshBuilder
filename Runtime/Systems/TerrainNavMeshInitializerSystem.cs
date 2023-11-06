@@ -1,4 +1,5 @@
 ﻿using EntitiesNavMeshBuilder.Data;
+using TerrainBaking;
 using Unity.Entities;
 using Unity.Physics;
 using Unity.Rendering;
@@ -8,14 +9,14 @@ namespace EntitiesNavMeshBuilder.Systems
 {
     [UpdateInGroup(typeof(InitializationSystemGroup))]
     // [UpdateBefore(typeof(NavMeshCollectorSystem))]
-    public partial struct MeshNavMeshInitializerSystem : ISystem
+    public partial struct TerrainNavMeshInitializerSystem : ISystem
     {
         private EntityQuery _toAddQuery;
 
         public void OnCreate(ref SystemState state)
         {
             _toAddQuery = SystemAPI.QueryBuilder()
-                .WithAll<MaterialMeshInfo, RenderMeshArray, NavMeshPart, MeshNavMeshPart>()
+                .WithAll<NavMeshTerrainData, NavMeshPart, TerrainNavMeshPart>()
                 .WithNone<NavMeshSourceData>().Build();
         }
 
@@ -26,12 +27,12 @@ namespace EntitiesNavMeshBuilder.Systems
                 state.EntityManager.AddComponent<NavMeshSourceData>(_toAddQuery);
             }
 
-            foreach (var (mmi, idRef, rma, part) in SystemAPI
-                         .Query<MaterialMeshInfo, RefRW<NavMeshSourceData>, RenderMeshArray, NavMeshPart>()
-                         .WithAll<MeshNavMeshPart>()
-                         .WithChangeFilter<MaterialMeshInfo, RenderMeshArray>())
+            foreach (var (terrain, idRef, part) in SystemAPI
+                         .Query<NavMeshTerrainData, RefRW<NavMeshSourceData>, NavMeshPart>()
+                         .WithAll<TerrainNavMeshPart>()
+                         .WithChangeFilter<NavMeshTerrainData>())
             {
-                var mesh = rma.GetMesh(mmi);
+                var mesh = terrain.data;
                 ref var id = ref idRef.ValueRW;
                 id.InstanceId = mesh.GetInstanceID();
                 var meshBounds = mesh.bounds;
@@ -41,7 +42,7 @@ namespace EntitiesNavMeshBuilder.Systems
                     Max = meshBounds.max
                 };
                 id.area = part.area;
-                id.shape = NavMeshBuildSourceShape.Mesh;
+                id.shape = NavMeshBuildSourceShape.Terrain;
             }
         }
     }

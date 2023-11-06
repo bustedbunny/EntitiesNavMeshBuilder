@@ -166,7 +166,8 @@ namespace EntitiesNavMeshBuilder.Systems
                         {
                             shape = data.shape,
                             transform = float4x4.TRS(ltw.Position, ltw.Rotation, new(1f, 1f, 1f)),
-                            size = data.data
+                            size = data.data,
+                            area = data.area
                         };
 
                         aabbsPtr[i] = data.aabb;
@@ -182,6 +183,7 @@ namespace EntitiesNavMeshBuilder.Systems
                         {
                             shape = data.shape,
                             transform = ltw.Value,
+                            area = data.area
                         };
                         var dst = (byte*)UnsafeUtility.AddressOf(ref navMeshBuildSource) + idOffset;
                         *(int*)dst = UnsafeUtility.As<float, int>(ref data.data.x);

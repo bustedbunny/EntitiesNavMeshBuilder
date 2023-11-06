@@ -25,9 +25,9 @@ namespace TerrainBaking
                 state.EntityManager.AddComponent<NavMeshSourceData>(_toAddQuery);
             }
 
-            foreach (var (idRef, terrain, link, lt, ltwRef) in SystemAPI
+            foreach (var (idRef, terrain, link, lt, ltwRef, part) in SystemAPI
                          .Query<RefRW<NavMeshSourceData>, NavMeshTerrainData, CompanionLink, LocalTransform,
-                             RefRW<LocalToWorld>>()
+                             RefRW<LocalToWorld>, NavMeshPart>()
                          .WithChangeFilter<NavMeshTerrainData>())
             {
                 var terrainData = terrain.data;
@@ -41,6 +41,7 @@ namespace TerrainBaking
                     Min = terrainBounds.min,
                     Max = terrainBounds.max
                 };
+                id.area = part.area;
                 id.shape = NavMeshBuildSourceShape.Terrain;
 
                 link.Companion.transform.SetLocalPositionAndRotation(lt.Position, lt.Rotation);
